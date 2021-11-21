@@ -1,66 +1,41 @@
 import cv2 as cv
-import numpy as np
+from time import time
+import sys    
 
-import sys
+from VideoFrames import VideoFrames
+from BandFactory import BandFactory
 
-# Get the command line arguments
-try:
-    path = sys.argv[1]
-except ValueError:
-    print('Missing argument: <path>')
-    exit()
+def formatExecutionTime(executionTime):
+    hours = f'{int(executionTime // 3600):02d}'
+    remainingSeconds = executionTime % 3600
+    minutes = f'{int(remainingSeconds // 60):02d}'
+    remainingSeconds = f'{(remainingSeconds % 60):05.2f}'
 
-# Get the video file
-video = cv.VideoCapture(path)
+    return (hours + 'h ' + minutes + 'm ' + remainingSeconds +'s')
 
-if (video.isOpened() == False):
-      print("Error opening the video file")
-      exit()
+if __name__ == '__main__': 
+    # Get the command line arguments
+    try:
+        path = sys.argv[1]
+    except ValueError:
+        print('Missing argument: <path>')
+        exit()
 
-# Get frame count, the frame per seconds and thus calculate the duration of the video
-frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
-fps = int(video.get(cv.CAP_PROP_FPS))
-duration = frameCount // fps
+    startTime = time();
 
-print('Frame count : ', frameCount)
-print('FPS : ', fps)
-print('Video duration : ', duration, 'seconds')
+    videoFrames = VideoFrames(path).start()
+    bandFactory = BandFactory(videoFrames.duration, videoFrames.frames).start()
 
-# Create an empty numpy array that will be the final render
-band = np.empty((50, duration + 1, 3))
+    videoFrames.thread.join()
+    bandFactory.thread.join()
 
-index = 0
-frameIndex = 0
+    # The video is saved as a color band with each second's most dominant color as a column of pixel
+    cv.imwrite('./bands/' + videoFrames.fileName + '-band.png', bandFactory.band)
 
-while(video.isOpened()):
-    ret, frame = video.read()
-    print(index)
+    endTime = time()
 
-    if ret == False:
-        break
+    print('Execution time : ', formatExecutionTime(round(endTime - startTime, 2)))
+    print('Press any key to leave the image...')
 
-    # Flatten the frame by its colors and get their respective count
-    colors, colorsCount = np.unique(frame.reshape(-1, frame.shape[2]), axis=0, return_counts=True)
-
-    # Get the color having the most occurences (making it the most dominant one)
-    dominantColor = colors[colorsCount.argmax()]
-
-    # Hydrate one column of pixel in the band with the current frame's dominant color
-    band[0:50, index] = np.full((1, 50, 3), dominantColor)
-    
-    index += 1
-    frameIndex += fps
-
-    # Set the next frame to the next second of the video
-    video.set(cv.CAP_PROP_POS_FRAMES, frameIndex)
-
-video.release()
-cv.destroyAllWindows()
-
-# The video is saved as a color band with each second's most dominant color as a column of pixel
-cv.imwrite('./band.png', band)
-
-print('Press any key to leave the image...')
-
-cv.imshow('band', band)
-cv.waitKey()
+    cv.imshow('band', bandFactory.band)
+    cv.waitKey()
