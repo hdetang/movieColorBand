@@ -6,7 +6,7 @@ class VideoFrames:
     def __init__(self, path):
         self.video = cv.VideoCapture(path)
         self.frameCount = int(self.video.get(cv.CAP_PROP_FRAME_COUNT))
-        self.fps = int(self.video.get(cv.CAP_PROP_FPS))
+        self.fps = int(self.video.get(cv.CAP_PROP_FPS)) +1
         self.duration = self.frameCount // self.fps
         self.frames = {}
         self.frameIndex = -1
@@ -31,10 +31,11 @@ class VideoFrames:
                 break
 
             # Get the current position of the video file in milliseconds
-            currentFrame = self.video.get(cv.CAP_PROP_POS_MSEC) / 1000
-            if int(currentFrame) > int(self.frameIndex):
+            currentFrame = int(self.video.get(cv.CAP_PROP_POS_MSEC) / 1000)
+
+            if currentFrame > self.frameIndex:
                 # Only retrieve and save the first frame in each new second
-                self.frames[int(currentFrame)] = self.video.retrieve()[1]
+                self.frames[currentFrame] = self.video.retrieve()[1]
             self.frameIndex = currentFrame
             
         self.video.release()

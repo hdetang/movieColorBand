@@ -4,6 +4,7 @@ import sys
 
 from VideoFrames import VideoFrames
 from BandFactory import BandFactory
+from ImageProcessor import setImageWidth
 
 def formatExecutionTime(executionTime):
     hours = f'{int(executionTime // 3600):02d}'
@@ -29,13 +30,15 @@ if __name__ == '__main__':
     videoFrames.thread.join()
     bandFactory.thread.join()
 
+    image = setImageWidth(bandFactory.band, 1000, 200)
+
     # The video is saved as a color band with each second's most dominant color as a column of pixel
-    cv.imwrite('./bands/' + videoFrames.fileName + '-band.png', bandFactory.band)
+    cv.imwrite('./bands/' + videoFrames.fileName + '-band.png', image)
 
     endTime = time()
 
     print('Execution time : ', formatExecutionTime(round(endTime - startTime, 2)))
     print('Press any key to leave the image...')
 
-    cv.imshow('band', bandFactory.band)
+    cv.imshow('band', image)
     cv.waitKey()
