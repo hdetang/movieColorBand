@@ -1,23 +1,27 @@
 import numpy as np
+import cv2 as cv
 
-def getDominantColor(image, dimensions):
-    # Flatten the frame by its colors and get their respective count
-    colors, colorsCount = np.unique(image.reshape(-1, dimensions), axis=0, return_counts=True)
+def resizeImage(image, scale):
+    imageHeigth, imageWidth, _ = image.shape
 
-    # Get the color having the most occurences (making it the most dominant one)
-    countSort = np.argsort(-colorsCount)
-    colors = colors[countSort]
+    width = int(imageWidth * scale / 100)
+    height = int(imageHeigth * scale / 100)
 
-    dominantColor = colors[0]
+    return cv.resize(image, (width, height))
 
-    # Due to lightning, there is a high chance black is the most dominant color in a movie so we skip it to get the second most dominant color
-    if np.array_equal(dominantColor, [0,0,0]) and 1 in colors:
-        dominantColor = colors[1]
+def getDominantColor(image):
+    pixels = np.float32(image.reshape(-1, 3))
 
-    return dominantColor
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 200, .1)
+    flags = cv.KMEANS_RANDOM_CENTERS
+
+    _, labels, palette = cv.kmeans(pixels, 1, None, criteria, 10, flags)
+    _, counts = np.unique(labels, return_counts=True)
+
+    return palette[np.argmax(counts)]
 
 def setImageWidth(image, width, height):
-    imageHeight, imageWidth, channels = image.shape
+    imageWidth = image.shape[1]
 
     if width > imageWidth: return image
 
@@ -34,7 +38,9 @@ def setImageWidth(image, width, height):
 
         slice = image[0, start:end]
 
-        dominantColor = getDominantColor(slice, channels)
+        if len(slice) == 0: continue
+    
+        dominantColor = getDominantColor(slice)
 
         # Hydrate one column of pixel in the band with the current frame's dominant color
         newImage[0:height, index] = np.full((1, height, 3), dominantColor)

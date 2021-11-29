@@ -1,7 +1,7 @@
 from threading import Thread
 import numpy as np
 from time import sleep
-from ImageProcessor import getDominantColor
+from ImageProcessor import getDominantColor, resizeImage
 
 class BandFactory:
 
@@ -33,7 +33,7 @@ class BandFactory:
 
             frame = self.frames[index]
 
-            dominantColor = getDominantColor(frame, frame.shape[2])
+            dominantColor = getDominantColor(resizeImage(frame, 50))
 
             # Hydrate one column of pixel in the band with the current frame's dominant color
             self.band[0, index] = np.full((1, 1, 3), dominantColor)
