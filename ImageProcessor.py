@@ -1,3 +1,4 @@
+from email.mime import image
 import numpy as np
 import cv2 as cv
 
@@ -20,11 +21,23 @@ def getDominantColor(image):
 
     return palette[np.argmax(counts)]
 
-def setImageWidth(image, width, height):
-    imageWidth = image.shape[1]
+def extendImage(image, imageWidth, height, width):
+    newImage = np.empty((height, width, 3))
 
-    if width > imageWidth: return image
+    ratio = width // imageWidth
+    
+    start = 0
+    end = ratio
 
+    for index in range(imageWidth): 
+        newImage[0:height, start:end] = np.full((height, ratio, 3), image[0, index])
+
+        start = end
+        end += ratio
+
+    return newImage
+
+def reduceImage(image, imageWidth, height, width):
     newImage = np.empty((height, width, 3))
 
     ratio = imageWidth // width
@@ -50,3 +63,10 @@ def setImageWidth(image, width, height):
         if end > imageWidth: end = imageWidth
 
     return newImage
+
+def setImageWidth(image, width, height):
+    imageWidth = image.shape[1]
+
+    if width > imageWidth: return extendImage(image, imageWidth, height, width)
+
+    return reduceImage(image, imageWidth, height, width)
